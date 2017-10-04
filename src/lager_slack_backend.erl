@@ -56,7 +56,6 @@ handle_event({log, Message}, S=#state{level=Level, uri=Uri}) ->
                 {sync, false},
                 {receiver, fun(Response) -> io:format("response: ~p", [Response]) end} % ignore response
             ]),
-            io:format("sending: ~s", [jsx:encode(Json)]),
             {ok, S};
         false ->
             {ok, S}
