@@ -2,6 +2,6 @@
     {description, "Lager Slack webhook backend"},
     {vsn, "0.1.0"},
     {registered, []},
-    {applications, [kernel, stdlib, inets, lager]},
+    {applications, [kernel, stdlib, inets, lager, jsx]},
     {env, []}
 ]}.
