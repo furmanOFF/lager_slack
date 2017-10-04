@@ -2,6 +2,9 @@
 
 -behaviour(gen_event).
 
+%% lager
+-export([config_to_id/1]).
+
 %% gen_event
 -export([init/1, handle_call/2, handle_event/2, handle_info/2, terminate/2,
         code_change/3]).
@@ -12,12 +15,23 @@
     uri :: string()
 }).
 
+%% lager
+config_to_id(Config) ->
+    case proplists:get_value(uri, Config) of
+        undefined ->
+            erlang:error(bad_uri);
+        Uri ->
+            {?MODULE, Uri}
+    end.
+
 %% gen_event
 init(Config) ->
-    Level = proplists:get_value(level, Config, debug),
+    Level = proplists:get_value(level, Config, critical),
     try {proplists:get_value(uri, Config), lager_util:config_to_mask(Level)} of
         {Uri, Levels} when is_list(Uri) -> 
             {ok, #state{uri=Uri, level=Levels}};
+        {Uri, Levels} when is_binary(Uri) -> 
+            {ok, #state{uri=binary_to_list(Uri), level=Levels}};
         _ -> 
             {error, {fatal, bad_uri}}
     catch
