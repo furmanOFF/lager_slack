@@ -42,13 +42,14 @@ handle_event({log, Message}, S=#state{level=Level, uri=Uri}) ->
     case lager_util:is_loggable(Message, Level, ?MODULE) of
         true ->
             Msg = list_to_binary(lager_msg:message(Message)),
+            {Mega, Sec, _Micro} = lager_msg:timestamp(Message),
             Json = #{
                 attachments => [#{
                     fallback => Msg,
                     text => Msg,
                     title => lager_msg:severity(Message),
                     color => color(lager_msg:severity(Message)),
-                    ts => time:from_timestamp(lager_msg:timestamp(Message), second)
+                    ts => Mega * 1000000 + Sec
                 }]
             },
             {ok, _Req} = httpc:request(post, {Uri, [], "application/json", jsx:encode(Json)}, [], [
