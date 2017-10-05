@@ -62,7 +62,7 @@ handle_event({log, Message}, S=#state{level=Level, uri=Uri, sign=Sign}) ->
             },
             {ok, _Req} = httpc:request(post, {Uri, [], "application/json", jsx:encode(Json)}, [], [
                 {sync, false},
-                {receiver, fun(Response) -> io:format("response: ~p", [Response]) end} % ignore response
+                {receiver, fun(_) -> ok end} % ignore response
             ]),
             {ok, S};
         false ->
@@ -99,7 +99,7 @@ config([{sign, Sign} | T], S) when is_list(Sign) ->
 config([{sign, Sign} | T], S) when is_binary(Sign); is_atom(Sign) ->
     config(T, S#state{sign = Sign});
 config([], State) ->
-    State;
+    {ok, State};
 config(_, _) ->
     {error, bad_config}.
 
