@@ -95,6 +95,8 @@ config([{level, Level} | T], S) ->
             {error, bad_log_level}
     end;
 config([{sign, Sign} | T], S) when is_list(Sign) ->
+    config(T, S#state{sign = list_to_binary(Sign)});
+config([{sign, Sign} | T], S) when is_binary(Sign); is_atom(Sign) ->
     config(T, S#state{sign = Sign});
 config([], State) ->
     State;
