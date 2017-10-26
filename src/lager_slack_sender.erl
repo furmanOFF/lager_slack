@@ -59,8 +59,8 @@ handle_info({http, {_, {error, Reason}}}, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, _State) ->
-    ok.
+terminate(_Reason, State) ->
+    send(State).
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
