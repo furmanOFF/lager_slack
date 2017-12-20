@@ -71,9 +71,8 @@ handle_msg(S=#state{count=Cnt, timeout=Timeout, timer=undefined}) when Cnt > 0 -
         timer = erlang:send_after(Timeout, self(), timeout)
     };
 handle_msg(S=#state{count=Cnt, threshold=Thres, timer=Ref}) when Cnt >= Thres ->
-    send(S#state{
-        timer = erlang:cancel_timer(Ref, [{async, true}, {info, false}])
-    });
+    erlang:cancel_timer(Ref, [{async, true}, {info, false}]),
+    send(S#state{timer=undefined});
 handle_msg(State) -> State.
 
 send(S=#state{count = 0}) -> S;
