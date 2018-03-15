@@ -13,13 +13,16 @@
 -record(state, {
     level :: term(),
     sender :: pid(),
-    sign=undefined :: string()
+    metadata :: sets:set(atom()),
+    sign :: string() | null
 }).
 
 -define(DEFAULT_CONFIG, #{
     level => critical,
     timeout => 5000,
-    threshold => 20
+    threshold => 20,
+    metadata => [module],
+    sign => null
 }).
 
 %% lager
@@ -38,12 +41,13 @@ init(Config) ->
     case check_config(Config, ?DEFAULT_CONFIG) of
         {error, Reason} -> 
             {error, {fatal, Reason}};
-        Map=#{uri:=Uri, level:=Level, timeout:=Timeout, threshold:=Thres} ->
+        #{uri:=Uri, level:=Level, timeout:=Timeout, threshold:=Thres, metadata:=Metadata, sign:=Sign} ->
             {ok, Pid} = lager_slack_sender:start_link(Uri, Timeout, Thres),
             {ok, #state{
                 sender = Pid,
                 level = Level,
-                sign = maps:get(sign, Map, undefined)
+                metadata = sets:from_list(Metadata),
+                sign = Sign
             }}
     end.
 
@@ -60,18 +64,19 @@ handle_call({set_loglevel, Level}, S) ->
 handle_call(_Request, State) ->
     {ok, ok, State}.
 
-handle_event({log, Message}, S=#state{sender=Pid, level=Level, sign=Sign}) ->
+handle_event({log, Message}, S=#state{sender=Pid, level=Level, metadata=Meta, sign=Sign}) ->
     case lager_util:is_loggable(Message, Level, ?MODULE) of
         true ->
-            Msg = list_to_binary(lager_msg:message(Message)),
+            Text = list_to_binary(lager_msg:message(Message)),
             Severity = lager_msg:severity(Message),
+            Metadata = lager_msg:metadata(Message),
             {Mega, Sec, _Micro} = lager_msg:timestamp(Message),
             Json = #{
-                fallback => Msg,
-                text => Msg,
-                title => Severity,
+                pretext => Severity,
+                text => Text,
                 color => color(Severity),
-                footer => case Sign of undefined -> null; _ -> Sign end,
+                fields => [metadata(MD) || {K, _}=MD <- Metadata, sets:is_element(K, Meta)],
+                footer => Sign,
                 ts => Mega * 1000000 + Sec
             },
             lager_slack_sender:send(Pid, Json),
@@ -112,10 +117,19 @@ check_config([{sign, Sign} | T], Map) when is_list(Sign) ->
     check_config(T, Map#{sign => list_to_binary(Sign)});
 check_config([{sign, Sign} | T], Map) when is_binary(Sign); is_atom(Sign) ->
     check_config(T, Map#{sign => Sign});
+check_config([{metadata, List} | T], Map) when is_list(List) ->
+    check_config(T, Map#{metadata => List});
 check_config([], Map=#{uri := _}) ->
     Map;
 check_config(_, _) ->
     {error, bad_config}.
+
+metadata({K, V}) ->
+    #{
+        title => K,
+        value => list_to_binary(io_lib:format("~p", [V])),
+        short => true
+    }.
 
 color(debug) -> null;
 color(info) -> <<"good">>;
