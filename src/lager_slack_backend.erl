@@ -72,7 +72,7 @@ handle_event({log, Message}, S=#state{sender=Pid, level=Level, metadata=Meta, si
             Metadata = lager_msg:metadata(Message),
             {Mega, Sec, _Micro} = lager_msg:timestamp(Message),
             Json = #{
-                pretext => Severity,
+                title => Severity,
                 text => Text,
                 color => color(Severity),
                 fields => [metadata(MD) || {K, _}=MD <- Metadata, sets:is_element(K, Meta)],
